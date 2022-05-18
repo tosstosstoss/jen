@@ -1,11 +1,26 @@
 pipeline {
-    agent any
+    agent { label 'node1' }
 
     stages {
-        stage('Hello') {
+        stage('Prepare') {
             steps {
-                echo 'Hello World'
+                echo 'This is Prepare stage'
+                sh 'pwd'
+                sh 'ls -la'
+            }
+        }
+
+        stage('Execution') {
+            steps {
+                echo 'This is Execution stage'
+            }
+        }
+
+        stage('Report') {
+            steps {
+                echo 'This is Report stage'
             }
         }
     }
+
 }
