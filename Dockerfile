@@ -1,7 +1,7 @@
 FROM ubuntu:latest
 
-# ENV TZ=Europe/Kiev
-# RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+ENV TZ=Europe/Kiev
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 RUN apt update
 RUN apt install software-properties-common -y
