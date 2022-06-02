@@ -12,3 +12,7 @@ RUN apt install python3.9 -y
 RUN python3.9 --version
 RUN useradd -g 0 jenkins
 RUN cat /etc/passwd | grep jenkins
+RUN apt install default-jre -y
+RUN java -version
+RUN apt install default-jdk -y
+RUN javac -version
