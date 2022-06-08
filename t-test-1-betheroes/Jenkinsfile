@@ -1,0 +1,69 @@
+pipeline {
+    options {
+    buildDiscarder(logRotator(numToKeepStr: '30'))
+    timestamps()
+  }
+    
+//  agent { label 'windows-agent'}
+  agent any
+  
+    stages {
+
+        stage('Setup parameters') {
+            steps {
+                script { 
+                    properties([
+                        parameters([
+                            choice(
+                                name: '_configfiles_branch',
+                                description: 'The configuration settings branch from which we pull the settings for the systems. Microsoft rules!',
+                                choices: ['ci-test-1']
+                            ),
+                            choice(
+                                name: '_commit_id',
+                                description: 'The branch/tag/hash id of the commit we pull the code from',
+                                choices: ['test', 'development']
+                            ),
+                            choice(
+                                name: 'hotfix',
+                                choices: ['no', 'yes']
+                            )                       
+                        ])
+                    ])
+                }
+            }
+        }
+
+        stage ('Clone') {
+            steps {
+                checkout([$class: 'GitSCM', 
+                branches: [[name: '$_commit_id']],
+                recursiveSubmodules: true,
+                parentCredentials: true,
+                userRemoteConfigs: [[credentialsId: 'jenkins', url: 'https://github.com/naiveskill/devops.git']],
+                ])
+            }
+        }
+ 
+
+        stage('Prepare') {
+            steps {
+                echo 'This is Execution stage'                
+            }
+        }
+
+
+        stage('Execution') {
+            steps {
+                echo 'This is Execution stage'
+            }
+        }
+
+        stage('Report') {
+            steps {
+                echo 'This is Report stage'
+            }
+        }
+
+    }
+}
