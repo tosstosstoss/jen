@@ -1,3 +1,22 @@
+properties([
+    parameters([
+        choice(
+              name: '_configfiles_branch',
+              description: 'The configuration settings branch from which we pull the settings for the systems. Microsoft rules!',
+              choices: ['ci-test-1']
+          ),
+          choice(
+              name: '_commit_id',
+              description: 'The branch/tag/hash id of the commit we pull the code from',
+              choices: ['test', 'development']
+          ),
+          choice(
+              name: 'hotfix',
+              choices: ['no', 'yes']
+          )
+    ])
+])
+
 pipeline {
     options {
     buildDiscarder(logRotator(numToKeepStr: '30'))
@@ -6,62 +25,39 @@ pipeline {
     
 //  agent { label 'windows-agent'}
   agent any
-  
-    stages {
 
-        stage('Setup parameters') {
-            steps {
-                script { 
-                    properties([
-                        parameters([
-                            choice(
-                                name: '_configfiles_branch',
-                                description: 'The configuration settings branch from which we pull the settings for the systems. Microsoft rules!',
-                                choices: ['ci-test-1']
-                            ),
-                            choice(
-                                name: '_commit_id',
-                                description: 'The branch/tag/hash id of the commit we pull the code from',
-                                choices: ['test', 'development']
-                            ),
-                            choice(
-                                name: 'hotfix',
-                                choices: ['no', 'yes']
-                            )                       
-                        ])
-                    ])
-                }
-            }
-        }
+    stages {
 
         stage ('Clone') {
             steps {
-                checkout([$class: 'GitSCM', 
-                branches: [[name: '$_commit_id']],
-                recursiveSubmodules: true,
-                parentCredentials: true,
-                userRemoteConfigs: [[credentialsId: 'jenkins', url: 'https://github.com/naiveskill/devops.git']],
-                ])
+                dir('repo_jenkins.scripts'){
+                    checkout([$class: 'GitSCM', 
+                    branches: [[name: '$_commit_id']],
+                    recursiveSubmodules: true,
+                    parentCredentials: true,
+                    userRemoteConfigs: [[credentialsId: 'jenkins', url: 'git@github.com:tosstosstoss/jen.git']], // TODO replace git repo
+                    ])    
+                }
             }
         }
  
 
-        stage('Prepare') {
+        stage('Checkout repo_jenkins.scripts') {
             steps {
-                echo 'This is Execution stage'                
+                sh 'repo_jenkins.scripts_lnx.sh'               
             }
         }
 
 
-        stage('Execution') {
+        stage('Run nugetRestore') {
             steps {
-                echo 'This is Execution stage'
+                sh 'nugetRestore_lnx.sh'  
             }
         }
 
-        stage('Report') {
+        stage('Run repo_spotprophets.configs') {
             steps {
-                echo 'This is Report stage'
+                sh 'repo_spotprophets.configs_lnx.sh'
             }
         }
 
