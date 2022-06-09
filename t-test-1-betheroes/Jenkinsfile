@@ -1,18 +1,16 @@
+// Jobs url http://builder-1.betheroes.com:8080/job/SpotProphets%20-%20.NetCore%20EveryMatrix/configure
+
 properties([
     parameters([
         choice(
               name: '_configfiles_branch',
-              description: 'The configuration settings branch from which we pull the settings for the systems. Microsoft rules!',
-              choices: ['ci-test-1']
+              description: 'Branch to pull from for "spotprophets.configs"',
+              choices: ['ci-dev', 'ci-test-1', 'ci-stg', 'ci-prod-alpha', 'ci-prod']
           ),
           choice(
               name: '_commit_id',
-              description: 'The branch/tag/hash id of the commit we pull the code from',
-              choices: ['test', 'development']
-          ),
-          choice(
-              name: 'hotfix',
-              choices: ['no', 'yes']
+              description: 'Branch to pull from for "netcore.services"',
+              choices: ['everymatrix_signalr_integration', 'everymatrix_signalr_integration2', 'development', 'test', 'release', 'master']
           )
     ])
 ])
@@ -28,36 +26,45 @@ pipeline {
 
     stages {
 
-        stage ('Clone') {
+        stage ('Get Source') {
             steps {
                 dir('repo_jenkins.scripts'){
                     checkout([$class: 'GitSCM', 
                     branches: [[name: '$_commit_id']],
-                    recursiveSubmodules: true,
-                    parentCredentials: true,
-                    userRemoteConfigs: [[credentialsId: 'jenkins', url: 'git@github.com:tosstosstoss/jen.git']], // TODO replace git repo
+                    // recursiveSubmodules: true,
+                    // parentCredentials: true,
+                    userRemoteConfigs: [[credentialsId: 'jenkins', url: 'git@github.com:tosstosstoss/jen.git']], // TODO replace git repo to git@bitbucket.org:258projects/netcore.services.git
                     ])    
                 }
             }
         }
- 
+        
 
-        stage('Checkout repo_jenkins.scripts') {
-            steps {
-                sh 'repo_jenkins.scripts_lnx.sh'               
+        stage ('Get Jenkins Scripts') {
+            sh 'repo_jenkins.scripts_lnx.sh'            
+        }
+
+        stage ('Inject app config') {
+            sh "repo_spotprophets.configs_lnx.sh"
+            source ./vars.ini
+        }
+
+        stage ('Prepare for build') {
+            steps { 
+                sh "EveryMatrixDockerPrepare.sh"
+                sh "source ./EveryMatrixDockerPrepare"
             }
         }
 
 
-        stage('Run nugetRestore') {
+        stage   ('Build') {
             steps {
-                sh 'nugetRestore_lnx.sh'  
+                sh "repo_jenkins.scripts/EveryMatrix/EveryMatrixDockerCreate.sh"
             }
-        }
 
-        stage('Run repo_spotprophets.configs') {
+        stage ("Maintenase") {
             steps {
-                sh 'repo_spotprophets.configs_lnx.sh'
+                
             }
         }
 
