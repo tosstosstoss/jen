@@ -10,61 +10,86 @@ properties([
           choice(
               name: '_commit_id',
               description: 'Branch to pull from for "netcore.services"',
-              choices: ['everymatrix_signalr_integration', 'everymatrix_signalr_integration2', 'development', 'test', 'release', 'master']
+              choices: ['main', 'everymatrix_signalr_integration', 'everymatrix_signalr_integration2', 'development', 'test', 'release', 'master'] // TODO delete main choice
           )
     ])
 ])
 
 pipeline {
+    agent any
+//  agent { label 'windows-agent'}
     options {
     buildDiscarder(logRotator(numToKeepStr: '30'))
-    timestamps()
   }
-    
-//  agent { label 'windows-agent'}
-  agent any
-
     stages {
 
         stage ('Get Source') {
             steps {
+                sh 'pwd'
+                dir(''){
+                checkout([$class: 'GitSCM', 
+                branches: [[name: '$_commit_id']],
+                // recursiveSubmodules: true,
+                // parentCredentials: true,
+                userRemoteConfigs: [[credentialsId: 'jenkins', url: 'git@github.com:tosstosstoss/jen.git']], // TODO replace git repo to git@bitbucket.org:258projects/netcore.services.git
+                ])
+                }
+            }
+        }
+        
+        stage('Get Jenkins Scripts') {
+            steps {
+                sh '''
+                rm -rf repo_jenkins.scripts
+                mkdir repo_jenkins.scripts
+                cd repo_jenkins.scripts
+                '''  
                 dir('repo_jenkins.scripts'){
                     checkout([$class: 'GitSCM', 
                     branches: [[name: '$_commit_id']],
                     // recursiveSubmodules: true,
                     // parentCredentials: true,
-                    userRemoteConfigs: [[credentialsId: 'jenkins', url: 'git@github.com:tosstosstoss/jen.git']], // TODO replace git repo to git@bitbucket.org:258projects/netcore.services.git
-                    ])    
-                }
+                    userRemoteConfigs: [[credentialsId: 'jenkins', url: 'git@github.com:tosstosstoss/jen.git']], // TODO replace git repo to git@bitbucket.org:258projects/jenkins.scripts.git
+                    ])
+                    }
             }
         }
-        
 
-        stage ('Get Jenkins Scripts') {
-            sh 'repo_jenkins.scripts_lnx.sh'            
-        }
 
         stage ('Inject app config') {
-            sh "repo_spotprophets.configs_lnx.sh"
-            source ./vars.ini
-        }
-
-        stage ('Prepare for build') {
-            steps { 
-                sh "EveryMatrixDockerPrepare.sh"
-                sh "source ./EveryMatrixDockerPrepare"
-            }
-        }
-
-
-        stage   ('Build') {
             steps {
-                sh "repo_jenkins.scripts/EveryMatrix/EveryMatrixDockerCreate.sh"
+                dir('spotprophets.configs.git'){
+                    checkout([$class: 'GitSCM', 
+                    branches: [[name: '$_commit_id']],
+                    // recursiveSubmodules: true,
+                    // parentCredentials: true,
+                    userRemoteConfigs: [[credentialsId: 'jenkins', url: 'git@github.com:tosstosstoss/jen.git']], // TODO replace git repo to git@bitbucket.org:258projects/spotprophets.configs.git
+                    ])
+                    }
+                source spotprophets.configs.git/vars.ini
             }
+            
+        }
+
+        stage('Prepare for build') {
+            steps { 
+                sh 'pwd'
+                // sh "EveryMatrixDockerPrepare.sh"
+                // sh "source ./EveryMatrixDockerPrepare"
+            }
+        }
+
+
+        stage('Build') {
+            steps {
+                sh 'pwd'
+                // sh "repo_jenkins.scripts/EveryMatrix/EveryMatrixDockerCreate.sh"
+            }
+        }
 
         stage ("Maintenase") {
             steps {
-                
+                echo "Maintenase"
             }
         }
 
