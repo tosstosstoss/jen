@@ -58,7 +58,7 @@ pipeline {
 
         stage ('Inject app config') {
             steps {
-                dir('spotprophets.configs.git'){
+                dir('spotprophets.configs'){
                     checkout([$class: 'GitSCM', 
                     branches: [[name: '$_commit_id']],
                     // recursiveSubmodules: true,
