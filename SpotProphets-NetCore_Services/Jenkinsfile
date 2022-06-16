@@ -8,7 +8,7 @@ properties([
           choice(
               name: '_commit_id',
               description: 'Branch to pull from for "netcore.services"',
-              choices: ['everymatrix_signalr_integration', 'everymatrix_signalr_integration2', 'development', 'test', 'release', 'master']
+              choices: ['development', 'test', 'release', 'master']
           ),
           choice(
               name: 'jenkins_scripts_branch',
@@ -37,7 +37,6 @@ pipeline {
                 }
             }
         }
-        
         stage('Get Jenkins Scripts') {
             steps {
                 dir('jenkins.scripts'){
@@ -48,7 +47,6 @@ pipeline {
                     }
             }
         }
-
         stage('Get Source spotprophets.configs') {
             steps {
                 dir('spotprophets.configs'){
@@ -59,59 +57,48 @@ pipeline {
                     }
             }
         }
-
-        // stage('Inject vars') {
-        //     steps {
-        //         sh '''
-        //         source spotprophets.configs/vars.ini
-        //         echo $APP_DOMAIN
-        //         '''
-        //         sh 'echo $APP_DOMAIN'
-        //     }
-        // }
-
-        // stage('Combine variables in EveryMatrixDockerProps from EveryMatrix/EveryMatrixDockerPrepare.sh') {
-        //     steps {
-        //         sh '''
-        //         cd jenkins.scripts/EveryMatrix
-        //         sh EveryMatrixDockerPrepare.sh 
-        //         source EveryMatrixDockerProps
-        //         echo $EVERY_MATRIX_IMAGE
-        //         '''
-        //     }
-        // }
-
-        stage('Build Image') {
+        stage('Combine variables & Inject vars') {
             steps {
                 sh '''
-                    source spotprophets.configs/vars.ini
-                    sh ./jenkins.scripts/EveryMatrix/EveryMatrixDockerPrepare.sh
-                    source EveryMatrixDockerProps
-                    docker ps
-                    docker images
-                    cd spotprophets.netcore.services && docker build -t everymatrix -f Dockerfile-everymatrix .
-                    docker tag everymatrix ${EVERY_MATRIX_IMAGE}/everymatrix
-                    docker images
+                source spotprophets.configs/vars.ini
+                sh ./jenkins.scripts/PaymentsAPI/PaymentsApiDockerPrepare.sh
+                source PaymentsApiDockerProps
+                sh ./jenkins.scripts/Prematch/PrematchDockerPrepare.sh
+                source PrematchDockerProps
+                sh ./jenkins.scripts/EventMenu/EventMenuDockerPrepare.sh
+                source EventMenuDockerProps
+                sh ./jenkins.scripts/SeasonRankingEvaluation/SeasonRankEvalDockerPrepare.sh
+                source SeasonRankEvalDockerProps
+                sh ./jenkins.scripts/BetslipEvaluation/BetslipEvaluationDockerPrepare.sh
+                source BetslipEvaluationDockerProps
                 '''
             }
         }
-        stage ('Push Image') {
+        stage('Build Docker Images') {
             steps {
                 sh '''
-                    source EveryMatrixDockerProps
-                    docker push ${EVERY_MATRIX_IMAGE}/everymatrix
+                source spotprophets.configs/vars.ini
+                source PaymentsApiDockerProps
+                source PrematchDockerProps
+                source EventMenuDockerProps
+                source SeasonRankEvalDockerProps
+                source BetslipEvaluationDockerProps
+
+                docker ps
+                docker images
                 '''
             }
         }
-        stage ('CleanUp Images') {
-            steps {
-                sh '''
-                    source EveryMatrixDockerProps
-                    docker images
-                    docker rmi -f $(docker images ${EVERY_MATRIX_IMAGE}/everymatrix -q)
-                    docker images
-                '''
-            }
-        }
+
+
+
+/*       stage('Build Docker Images')
+         repo_jenkins.scripts/PaymentsAPI/PaymentsApiDockerBuildAndRun.cmd
+         repo_jenkins.scripts/Prematch/PrematchDockerBuildAndRun.cmd
+         repo_jenkins.scripts/EventMenu/EventMenuDockerBuildAndRun.cmd
+         repo_jenkins.scripts/SeasonRankingEvaluation/SeasonRankEvalDockerBuildAndRun.cmd
+         repo_jenkins.scripts/BetslipEvaluation/BetslipEvaluationBuildAndRun.cmd
+         repo_jenkins.scripts\PaymentsAPI\PaymentsApiWarmup.cmd */
+
     }
 }
