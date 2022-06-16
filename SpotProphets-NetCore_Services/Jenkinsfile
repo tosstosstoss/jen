@@ -3,7 +3,7 @@ properties([
         choice(
               name: '_configfiles_branch',
               description: 'Branch to pull from for "spotprophets.configs"',
-              choices: ['ci-do', 'ci-dev', 'ci-test-1', 'ci-stg', 'ci-prod-alpha', 'ci-prod'] 
+              choices: ['ci-do', 'ci-dev', 'ci-test-1', 'ci-stg', 'ci-prod-alpha', 'ci-prod']
           ),
           choice(
               name: '_commit_id',
@@ -19,18 +19,17 @@ properties([
 ])
 
 pipeline {
-    agent { label 'docker-build'}
+    agent { label 'docker-build' }
     options {
         buildDiscarder(logRotator(numToKeepStr: '30'))
     }
 
     stages {
-        
         stage ('Get Source netcore.services') {
             steps {
                 cleanWs()
-                dir('spotprophets.netcore.services'){
-                checkout([$class: 'GitSCM', 
+                dir('spotprophets.netcore.services') {
+                checkout([$class: 'GitSCM',
                 branches: [[name: '$_commit_id']],
                 userRemoteConfigs: [[credentialsId: 'jenkins', url: 'git@bitbucket.org:258projects/netcore.services.git']],
                 ])
@@ -39,22 +38,22 @@ pipeline {
         }
         stage('Get Jenkins Scripts') {
             steps {
-                dir('jenkins.scripts'){
-                    checkout([$class: 'GitSCM', 
+                dir('jenkins.scripts') {
+                    checkout([$class: 'GitSCM',
                     branches: [[name: '$jenkins_scripts_branch']],
                     userRemoteConfigs: [[credentialsId: 'jenkins', url: 'git@bitbucket.org:258projects/jenkins.scripts.git']],
                     ])
-                    }
+                }
             }
         }
         stage('Get Source spotprophets.configs') {
             steps {
-                dir('spotprophets.configs'){
-                    checkout([$class: 'GitSCM', 
+                dir('spotprophets.configs') {
+                    checkout([$class: 'GitSCM',
                     branches: [[name: '$_configfiles_branch']],
                     userRemoteConfigs: [[credentialsId: 'jenkins', url: 'git@bitbucket.org:258projects/spotprophets.configs.git']],
                     ])
-                    }
+                }
             }
         }
         stage('Combine variables & Inject vars') {
@@ -74,31 +73,26 @@ pipeline {
                 '''
             }
         }
-        stage('Build Docker Images') {
+        stage('Build Docker Image PaymentsAPI') {
             steps {
                 sh '''
+                docker images
                 source spotprophets.configs/vars.ini
                 source PaymentsApiDockerProps
-                source PrematchDockerProps
-                source EventMenuDockerProps
-                source SeasonRankEvalDockerProps
-                source BetslipEvaluationDockerProps
-
-                docker ps
+                cd spotprophets.netcore.services && docker build -t paymentsapi -f Dockerfile-paymentsapi .
                 docker images
+                docker tag paymentsapi $PAYMENTS_API_IMAGE/paymentsapi 
                 '''
             }
         }
-
-
-
+        
 /*       stage('Build Docker Images')
          repo_jenkins.scripts/PaymentsAPI/PaymentsApiDockerBuildAndRun.cmd
          repo_jenkins.scripts/Prematch/PrematchDockerBuildAndRun.cmd
          repo_jenkins.scripts/EventMenu/EventMenuDockerBuildAndRun.cmd
          repo_jenkins.scripts/SeasonRankingEvaluation/SeasonRankEvalDockerBuildAndRun.cmd
          repo_jenkins.scripts/BetslipEvaluation/BetslipEvaluationBuildAndRun.cmd
-         repo_jenkins.scripts\PaymentsAPI\PaymentsApiWarmup.cmd */
-
+         repo_jenkins.scripts\PaymentsAPI\PaymentsApiWarmup.cmd 
+         repo_jenkins.scripts\MaintenancePage\maintenanceDisable.cmd */
     }
 }
